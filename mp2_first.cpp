@@ -17,6 +17,22 @@ std::vector<short> readAudioFile(const std::string &filename) {
     return audioData;
 }
 
+int main() {
+    
+    std::string filename = "audio.wav";
+    std::vector<short> audioData = readAudioFile(filename);
+
+    // Stampa alcuni dati del file audio
+    std::cout << "Il file audio contiene " << audioData.size() << " campioni." << std::endl;
+    std::cout << "I primi 10 campioni sono: ";
+    for (size_t i = 0; i < 100 && i < audioData.size(); ++i) {
+        std::cout << audioData[i] << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}
+
 // 1b. Load frame
 // 1c. Save initial state of the compressor
 

@@ -1,0 +1,4 @@
+Provare a veder se il codice è realmente funzionante; Controllare che:
+- Lo stato dei frame compressi sia realmente diverso (fare delle print tra frame)
+- Stampre lo stato tra frame diversi
+- Verificare che la memoria venga realmente liberata

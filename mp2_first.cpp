@@ -141,14 +141,11 @@ int main() {
 
     // Iteration
     for (int i = 0; i < N; ++i) {
-        // Leggi un frame audio
-        //file.read(reinterpret_cast<char*>(audio_buffer.data()), audio_buffer.size() * sizeof(short));
         if (audioData.size() == 0) {
             break; // Fine del file
         }
 
         // 3a. Save the state before each iteration
-        // Salva lo stato del compressore
         twolame_options *saved_opts = save_state(encoder_options);
         if (!saved_opts) {
             twolame_close(&encoder_options);

@@ -8,13 +8,9 @@
 #include <fstream>
 #include <cstring>
 
-
-// Function for copy the options
 void options_copy(twolame_options *dest, const twolame_options *src) {
-    // Copy simple term
     std::memcpy(dest, src, sizeof(twolame_options));
 
-    // buffer copy
     if (src->subband) {
         dest->subband = static_cast<subband_t*>(malloc(sizeof(subband_t)));
         std::memcpy(dest->subband, src->subband, sizeof(subband_t));
@@ -49,7 +45,6 @@ void options_copy(twolame_options *dest, const twolame_options *src) {
     }
 }
 
-// Function for free options
 void free_twolame_options(twolame_options *opts) {
     if (opts->subband) {
         free(opts->subband);
@@ -86,7 +81,6 @@ void free_twolame_options(twolame_options *opts) {
     twolame_close(&opts);
 }
 
-// 1b. Save initial state of the compressor
 twolame_options* save_state(const twolame_options *opts) {
     twolame_options *saved_opts = twolame_init();
     if (!saved_opts) {
@@ -97,18 +91,12 @@ twolame_options* save_state(const twolame_options *opts) {
     return saved_opts;
 }
 
-
-
-// 3b. Restore the state if necessary
 void restore_state(twolame_options *opts, const twolame_options *saved_opts) {
-    free_twolame_options(opts);
     options_copy(opts, saved_opts);
 }
 
-// 1. Frame Preparation
-// 1a. Read Audio File
 std::vector<short> readAudioFile(const std::string &filename) {
-    std::ifstream file(filename, std::ios::binary); //open the file in binary mode
+    std::ifstream file(filename, std::ios::binary);
     if (!file) {
         throw std::runtime_error("Errore nell'apertura del file audio.");
     }
@@ -118,7 +106,7 @@ std::vector<short> readAudioFile(const std::string &filename) {
 }
 
 int main() {
-    const int N = 10;  // Number of iteration
+    const int N = 10;  //Number of iteration
     const int frame_size = 1152;  // Frame size for MPEG layer 2
     const int buffer_size = 8192; // Frame size for output buffer
 
@@ -126,38 +114,34 @@ int main() {
     std::vector<short> audio_buffer(frame_size);
     std::vector<unsigned char> mp2buffer(buffer_size);
 
-    twolame_options *encoder_options = twolame_init(); //initialize the lame encoder
+    twolame_options *encoder_options = twolame_init();
     if (!encoder_options) {
         std::cerr << "Errore nell'inizializzazione di TwoLame encoder" << std::endl;
         return 1;
     }
 
-    // Imposta i parametri necessari
     twolame_set_bitrate(encoder_options, 128);
     twolame_set_in_samplerate(encoder_options, 44100);
     twolame_set_out_samplerate(encoder_options, 44100);
     twolame_set_mode(encoder_options, TWOLAME_MONO);
     twolame_set_num_channels(encoder_options, 1); // Specifica il numero di canali di input
 
-
-    if (twolame_init_params(encoder_options) != 0) { //initialize the params with default value
+    if (twolame_init_params(encoder_options) != 0) { // Inizializza i parametri con valori di default
         std::cerr << "Errore nella configurazione dell'encoder TwoLame" << std::endl;
         twolame_close(&encoder_options);
         return 1;
     }
 
-    //read audio
+    //Read audio
     std::string filename = "audio.wav";
     std::vector<short> audioData = readAudioFile(filename);
 
-    // Print some file audio data
+    //Print some file audio data
     std::cout << "Il file audio contiene " << audioData.size() << " campioni." << std::endl;
     for (size_t i = 0; i < 100 && i < audioData.size(); ++i) {
         std::cout << audioData[i] << " ";
     }
     std::cout << std::endl;
-
-    // 3. Compressor state
 
     // Iteration
     for (int i = 0; i < N; ++i) {
@@ -172,12 +156,12 @@ int main() {
             return 1;
         }
 
-        // 2. Watermarking functions
-        //...
-        //here
-        //...
+        // 2. Watermarking function
+        // ...
+        // here
+        // ...
 
-        // frame compression
+        // Compress frame
         int bytes_encoded = twolame_encode_buffer(encoder_options, audio_buffer.data(), nullptr, audio_buffer.size(), mp2buffer.data(), buffer_size);
         if (bytes_encoded < 0) {
             std::cerr << "Errore di codifica" << std::endl;
@@ -186,21 +170,16 @@ int main() {
             continue;
         }
 
-        // quality check
-        bool compression_acceptable = true; 
-        //verification check
-        //...
-        //here
-        //...
+        //quality check
+        bool compression_acceptable = true;
 
         if (!compression_acceptable) {
-            // restore compressor state
             restore_state(encoder_options, saved_opts);
         }
-
-        // free options
-        free_twolame_options(encoder_options);
+        free_twolame_options(saved_opts);
     }
+    // Libera le opzioni dell'encoder principale
+    free_twolame_options(encoder_options);
 
     return 0;
 }

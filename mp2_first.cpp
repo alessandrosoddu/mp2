@@ -1,37 +1,16 @@
-#include <vector>
-#include <iostream>
-#include <cstring>
-#include <fstream>
-#include <twolame.h>   
+#define new new_
+#include "twolame.h"
 #include "common.h"
+#undef new
 
+#include <iostream>
+#include <vector>
+#include <fstream>
+#include <cstring>
 
-// 1. Frame Preparation
-
-// 1a. Read Audio File
-std::vector<short> readAudioFile(const std::string &filename) {
-    std::ifstream file(filename, std::ios::binary); //open the file in binary mode
-    if (!file) {
-        throw std::runtime_error("Errore nell'apertura del file audio.");
-    }
-    std::vector<short> audioData((std::istreambuf_iterator<char>(file)),
-                                 std::istreambuf_iterator<char>());
-    return audioData;
-}
-
-// 1b. Save initial state of the compressor
-twolame_options* save_state(const twolame_options *opts) {
-    twolame_options *saved_opts = twolame_init();
-    if (!saved_opts) {
-        std::cerr << "Errore di inizializzazione di TwoLame" << std::endl;
-        return nullptr;
-    }
-    twolame_options_copy(saved_opts, opts);
-    return saved_opts;
-}
 
 // Function for copy the options
-void twolame_options_copy(twolame_options *dest, const twolame_options *src) {
+void options_copy(twolame_options *dest, const twolame_options *src) {
     // Copy simple term
     std::memcpy(dest, src, sizeof(twolame_options));
 
@@ -71,38 +50,71 @@ void twolame_options_copy(twolame_options *dest, const twolame_options *src) {
 }
 
 // Function for free options
-void free_twolame_options(twolame_options *opts){
+void free_twolame_options(twolame_options *opts) {
     if (opts->subband) {
         free(opts->subband);
+        opts->subband = nullptr;
     }
     if (opts->j_sample) {
         free(opts->j_sample);
+        opts->j_sample = nullptr;
     }
     if (opts->sb_sample) {
         free(opts->sb_sample);
+        opts->sb_sample = nullptr;
     }
     if (opts->p0mem) {
         free(opts->p0mem);
+        opts->p0mem = nullptr;
     }
     if (opts->p1mem) {
         free(opts->p1mem);
+        opts->p1mem = nullptr;
     }
     if (opts->p2mem) {
         free(opts->p2mem);
+        opts->p2mem = nullptr;
     }
     if (opts->p3mem) {
         free(opts->p3mem);
+        opts->p3mem = nullptr;
     }
     if (opts->p4mem) {
         free(opts->p4mem);
+        opts->p4mem = nullptr;
     }
     twolame_close(&opts);
 }
 
+// 1b. Save initial state of the compressor
+twolame_options* save_state(const twolame_options *opts) {
+    twolame_options *saved_opts = twolame_init();
+    if (!saved_opts) {
+        std::cerr << "Errore di inizializzazione di TwoLame" << std::endl;
+        return nullptr;
+    }
+    options_copy(saved_opts, opts);
+    return saved_opts;
+}
+
+
+
 // 3b. Restore the state if necessary
 void restore_state(twolame_options *opts, const twolame_options *saved_opts) {
     free_twolame_options(opts);
-    twolame_options_copy(opts, saved_opts);
+    options_copy(opts, saved_opts);
+}
+
+// 1. Frame Preparation
+// 1a. Read Audio File
+std::vector<short> readAudioFile(const std::string &filename) {
+    std::ifstream file(filename, std::ios::binary); //open the file in binary mode
+    if (!file) {
+        throw std::runtime_error("Errore nell'apertura del file audio.");
+    }
+    std::vector<short> audioData((std::istreambuf_iterator<char>(file)),
+                                 std::istreambuf_iterator<char>());
+    return audioData;
 }
 
 int main() {
@@ -119,6 +131,14 @@ int main() {
         std::cerr << "Errore nell'inizializzazione di TwoLame encoder" << std::endl;
         return 1;
     }
+
+    // Imposta i parametri necessari
+    twolame_set_bitrate(encoder_options, 128);
+    twolame_set_in_samplerate(encoder_options, 44100);
+    twolame_set_out_samplerate(encoder_options, 44100);
+    twolame_set_mode(encoder_options, TWOLAME_MONO);
+    twolame_set_num_channels(encoder_options, 1); // Specifica il numero di canali di input
+
 
     if (twolame_init_params(encoder_options) != 0) { //initialize the params with default value
         std::cerr << "Errore nella configurazione dell'encoder TwoLame" << std::endl;
@@ -162,6 +182,7 @@ int main() {
         if (bytes_encoded < 0) {
             std::cerr << "Errore di codifica" << std::endl;
             restore_state(encoder_options, saved_opts);
+            free_twolame_options(saved_opts);
             continue;
         }
 
@@ -178,7 +199,7 @@ int main() {
         }
 
         // free options
-        free_twolame_options(saved_opts);
+        free_twolame_options(encoder_options);
     }
 
     return 0;

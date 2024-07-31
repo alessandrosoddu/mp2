@@ -111,8 +111,11 @@ int main() {
     const int buffer_size = 8192; // Frame size for output buffer
 
     // Buffer audio
-    std::vector<short> audio_buffer(frame_size);
+    //std::vector<short> audio_buffer(frame_size);
+    //std::vector<unsigned char> mp2buffer(buffer_size);
+
     std::vector<unsigned char> mp2buffer(buffer_size);
+    std::vector<short> audioData = readAudioFile("audio.wav");
 
     twolame_options *encoder_options = twolame_init();
     if (!encoder_options) {
@@ -132,9 +135,12 @@ int main() {
         return 1;
     }
 
+    std::vector<short> audioFrame(frame_size);
+    std::copy(audioData.begin(), audioData.begin() + frame_size, audioFrame.begin());
+
     //Read audio
-    std::string filename = "audio.wav";
-    std::vector<short> audioData = readAudioFile(filename);
+    //std::string filename = "audio.wav";
+    //std::vector<short> audioData = readAudioFile(filename);
 
     //Print some file audio data
     std::cout << "Il file audio contiene " << audioData.size() << " campioni." << std::endl;
@@ -143,8 +149,12 @@ int main() {
     }
     std::cout << std::endl;
 
+    //Genetic Algorithm here..
+
     // Iteration
     for (int i = 0; i < N; ++i) {
+        std::vector<short> individual = audioFrame;
+
         if (audioData.size() == 0) {
             break; // Fine del file
         }
@@ -156,19 +166,18 @@ int main() {
             return 1;
         }
 
-        // 2. Watermarking function
-        // ...
-        // here
-        // ...
-
         // Compress frame
-        int bytes_encoded = twolame_encode_buffer(encoder_options, audio_buffer.data(), nullptr, audio_buffer.size(), mp2buffer.data(), buffer_size);
+        int bytes_encoded = twolame_encode_buffer(encoder_options, individual.data(), nullptr, individual.size(), mp2buffer.data(), buffer_size);
         if (bytes_encoded < 0) {
             std::cerr << "Errore di codifica" << std::endl;
             restore_state(encoder_options, saved_opts);
             free_twolame_options(saved_opts);
             continue;
         }
+
+        std::vector<short> decoded_frame(frame_size);
+        // Placeholder per la funzione di decodifica
+        // decode(mp2buffer, decoded_frame);
 
         //quality check
         bool compression_acceptable = true;

@@ -105,74 +105,19 @@ std::vector<short> readAudioFile(const std::string &filename) {
     return audioData;
 }
 
-/*bool LameEncode(const std::string& input, twolame_options *encoder_options)
-{
-    const size_t IN_SAMPLERATE = 44100; //default sample-rate
-    const size_t PCM_SIZE = 8192;
-    const size_t MP2_SIZE = 8192;
-    int16_t pcm_buffer[PCM_SIZE * 2];
-    unsigned char mp3_buffer[MP2_SIZE];
-    const size_t bytes_per_sample = 2 * sizeof(int16_t); //stereo signal, 16 bits
-    const std::string ext = {"mp2"};
-
-    std::string output(input);
-    output.replace(output.end() - ext.length(), output.end(), ext);
-    std::ifstream wav;
-    std::ofstream mp2;
-
-    wav.exceptions(std::ifstream::failbit);
-    mp2.exceptions(std::ifstream::failbit);
-    try {
-        wav.open(input, std::ios_base::binary);
-        mp2.open(output, std::ios_base::binary);
-    }
-    catch (std::ifstream::failure e) {
-        std::cout << "Error opening input/output file: " << std::strerror(errno) << '\n';
-        return false;
-    }
-
-    twolame_set_bitrate(encoder_options, 128);
-    twolame_set_in_samplerate(encoder_options, IN_SAMPLERATE);
-    twolame_set_out_samplerate(encoder_options, IN_SAMPLERATE);
-    twolame_set_mode(encoder_options, TWOLAME_MONO);
-    twolame_set_num_channels(encoder_options, 1); // Specifica il numero di canali di input
-
-    if (twolame_init_params(encoder_options) < 0) {
-        wav.close();
-        mp2.close();
-        return false;
-    }
-
-    while (wav.good()) {
-        int write = 0;
-        wav.read(reinterpret_cast<char*>(pcm_buffer), sizeof(pcm_buffer));
-        int read = wav.gcount() / bytes_per_sample;
-        if (read == 0)
-            write = twolame_encode_flush(encoder_options, mp3_buffer, MP2_SIZE);
-        else
-            write = twolame_encode_buffer_interleaved(encoder_options, pcm_buffer, read, mp3_buffer, MP2_SIZE);
-        mp2.write(reinterpret_cast<char*>(mp3_buffer), write);
-    }
-
-    wav.close();
-    mp2.close();
-
-    twolame_close(&encoder_options);
-    return true;
-}*/
-
 int main() {
-    const int N = 10;  //Number of iteration
+    const int N = 10;  // Number of iterations per frame
     const int frame_size = 1152;  // Frame size for MPEG layer 2
-    const int buffer_size = 8192; // Frame size for output buffer
-
-    // Buffer audio
-    //std::vector<short> audio_buffer(frame_size);
-    //std::vector<unsigned char> mp2buffer(buffer_size);
+    const int buffer_size = 8192; // Buffer size for output buffer
 
     std::vector<unsigned char> mp2buffer(buffer_size);
     std::vector<short> audioData = readAudioFile("audio.wav");
-    std::ofstream outputFile("output.mp2");
+
+    std::ofstream outputFile("output.mp2", std::ios::binary);
+    if (!outputFile) {
+        std::cerr << "Errore nell'apertura del file di output" << std::endl;
+        return 1;
+    }
 
     twolame_options *encoder_options = twolame_init();
     if (!encoder_options) {
@@ -180,43 +125,41 @@ int main() {
         return 1;
     }
 
-    twolame_set_bitrate(encoder_options, 128);
+    twolame_set_bitrate(encoder_options, 192);
     twolame_set_in_samplerate(encoder_options, 44100);
     twolame_set_out_samplerate(encoder_options, 44100);
-    twolame_set_mode(encoder_options, TWOLAME_MONO);
-    twolame_set_num_channels(encoder_options, 1); // Specifica il numero di canali di input
+    twolame_set_mode(encoder_options, TWOLAME_STEREO);
+    twolame_set_num_channels(encoder_options, 2); // Stereo input
 
-    if (twolame_init_params(encoder_options) != 0) { // Inizializza i parametri con valori di default
+    if (twolame_init_params(encoder_options) != 0) { // Initialize with default parameters
         std::cerr << "Errore nella configurazione dell'encoder TwoLame" << std::endl;
         twolame_close(&encoder_options);
         return 1;
     }
 
-    //std::vector<short> audioFrame(frame_size);
-    //std::copy(audioData.begin(), audioData.begin() + frame_size, audioFrame.begin());
-
-    size_t num_frames = audioData.size() / frame_size;
+    size_t num_frames = audioData.size() / (frame_size * 2); // Stereo, so frame_size * 2
 
     for (size_t frame_index = 0; frame_index < num_frames; frame_index++) {
-        std::vector<short> audioFrame(frame_size);
-        size_t start = frame_index * frame_size;
+        std::vector<short> audioFrame(frame_size * 2); // Stereo frame
+        size_t start = frame_index * frame_size * 2; // Start index for the current frame
 
-        if (start + frame_size <= audioData.size()) {
-            std::copy(audioData.begin() + start, audioData.begin() + start + frame_size, audioFrame.begin());
-        } else {
-            break;
-        }
+        // Copy the frame data
+        std::copy(audioData.begin() + start, audioData.begin() + start + frame_size * 2, audioFrame.begin());
 
+        // Perform N iterations on the current frame
+        bool watermark_successful = false;
         for (int i = 0; i < N; ++i) {
             std::vector<short> individual = audioFrame;
 
+            // Save the state of the encoder before processing the frame
             twolame_options *saved_opts = save_state(encoder_options);
             if (!saved_opts) {
                 twolame_close(&encoder_options);
                 return 1;
             }
 
-            int bytes_encoded = twolame_encode_buffer(encoder_options, individual.data(), nullptr, individual.size(), mp2buffer.data(), buffer_size);
+            // Compress the frame
+            int bytes_encoded = twolame_encode_buffer_interleaved(encoder_options, individual.data(), individual.size() / 2, mp2buffer.data(), buffer_size);
             if (bytes_encoded < 0) {
                 std::cerr << "Errore di codifica" << std::endl;
                 restore_state(encoder_options, saved_opts);
@@ -224,84 +167,36 @@ int main() {
                 continue;
             }
 
-            std::vector<short> decoded_frame(frame_size);
-            // Placeholder per la funzione di decodifica
+            // Placeholder for decoding and watermark validation
+            std::vector<short> decoded_frame(frame_size * 2);
             // decode(mp2buffer, decoded_frame);
 
-            bool compression_acceptable = true;
+            // Quality check and watermark validation (simulated)
+            bool compression_acceptable = true; // Simulate the watermark success check
 
-            if (!compression_acceptable) {
+            if (compression_acceptable) {
+                outputFile.write(reinterpret_cast<char*>(mp2buffer.data()), bytes_encoded);
+                watermark_successful = true;
+                free_twolame_options(saved_opts);
+                break; // Exit the loop if the watermark is successfully inserted
+            } else {
+                // If the watermark is not acceptable, restore the encoder state
                 restore_state(encoder_options, saved_opts);
+                free_twolame_options(saved_opts);
             }
-
-            free_twolame_options(saved_opts);
         }
 
-        int final_bytes_encoded = twolame_encode_buffer(encoder_options, audioFrame.data(), nullptr, audioFrame.size(), mp2buffer.data(), buffer_size);
-        if (final_bytes_encoded > 0) {
-            outputFile.write(reinterpret_cast<char*>(mp2buffer.data()), final_bytes_encoded);
+        if (!watermark_successful) {
+            std::cerr << "Errore: il watermark non è stato inserito correttamente per il frame " << frame_index << std::endl;
+            // Handle the case where no iteration succeeded
         }
+
+        // Encoder state evolves naturally here for the next frame
     }
 
-    int flush_bytes = twolame_encode_flush(encoder_options, mp2buffer.data(), buffer_size);
-    if (flush_bytes > 0) {
-        outputFile.write(reinterpret_cast<char*>(mp2buffer.data()), flush_bytes);
-    }
-
-    //Read audio
-    //std::string filename = "audio.wav";
-    //std::vector<short> audioData = readAudioFile(filename);
-
-    //Print some file audio data
-    /*std::cout << "Il file audio contiene " << audioData.size() << " campioni." << std::endl;
-    for (size_t i = 0; i < 100 && i < audioData.size(); ++i) {
-        std::cout << audioData[i] << " ";
-    }
-    std::cout << std::endl;*/
-
-    //Genetic Algorithm here..
-
-    // Iteration
-    /*for (int i = 0; i < N; ++i) {
-        std::vector<short> individual = audioFrame;
-
-        if (audioData.size() == 0) {
-            break; // Fine del file
-        }
-
-        // 3a. Save the state before each iteration
-        twolame_options *saved_opts = save_state(encoder_options);
-        if (!saved_opts) {
-            twolame_close(&encoder_options);
-            return 1;
-        }
-
-        // Compress frame
-        int bytes_encoded = twolame_encode_buffer(encoder_options, individual.data(), nullptr, individual.size(), mp2buffer.data(), buffer_size);
-        if (bytes_encoded < 0) {
-            std::cerr << "Errore di codifica" << std::endl;
-            restore_state(encoder_options, saved_opts);
-            free_twolame_options(saved_opts);
-            continue;
-        }
-
-        std::vector<short> decoded_frame(frame_size);
-        // Placeholder per la funzione di decodifica
-        // decode(mp2buffer, decoded_frame);
-
-        //quality check
-        bool compression_acceptable = true;
-
-        if (!compression_acceptable) {
-            restore_state(encoder_options, saved_opts);
-        }
-        free_twolame_options(saved_opts);
-    }*/
-
-    // Libera le opzioni dell'encoder principale
-    outputFile.close();
     free_twolame_options(encoder_options);
+    outputFile.close();
 
-    std::cout << "Compressione Completata!\n";
+    std::cout << "Compressione completata." << std::endl;
     return 0;
 }

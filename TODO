@@ -4,3 +4,14 @@ Provare a veder se il codice è realmente funzionante; Controllare che:
 - Verificare che la memoria venga realmente liberata
 
 - Fare dei test andando a modificare dei campioni audio
+
+- quando prendi un nuovo frame prendi lo stato tenuto
+- mettere il codice in una funzinoa con argomenti frame  e stato, comprime e restituisce risultato
+questa funzione viene richiamata all'interno del for
+
+- Analisi e Studio della compressione audio MPEG per embedding di watermark fragile
+- Sviluppo di un sistema per la compressione di file audio per inserimento di watermark fragile
+- Sviluppo di un sistema per la compressione e watermarking di file audio: Un approccio basato sul salvataggio dello stato
+- Watermarking di file audio: Sviluppo di un sistema per la compressione di file audio
+- Watermarking di file audio compressi: Un approccio basato sul salvataggio dello stato
+- Watermarking di file audio compressi: Sviluppo e Analisi di un sistema per la compressione ed il salvataggio dello stato di file audio mp2.

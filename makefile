@@ -1,7 +1,9 @@
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall
-TARGET = read_audio
-SRCS = mp2_first.cpp
+CXXFLAGS = -std=c++11
+TARGET = encoder
+SRCS = mp2_encoder.cpp
+INPUT = audio.wav
+OUTPUT = encoder.mp2
 
 # Directory di installazione di TwoLAME (modifica secondo la tua configurazione)
 TWOLAME_INCLUDE_DIR = /usr/include
@@ -19,6 +21,9 @@ $(TARGET): $(SRCS)
 clean:
 	rm -f $(TARGET) *.o
 
+clean_all:
+	rm -f $(TARGET) $(OUTPUT) *.o
+
 # Regola per eseguire il programma
 run: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) $(INPUT) $(OUTPUT)

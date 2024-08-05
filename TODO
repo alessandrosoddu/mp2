@@ -1,4 +1,5 @@
 Provare a veder se il codice è realmente funzionante; Controllare che:
- - Comprimere un solo frame
- - Comprimere un solo frame per N volte con lo stesso stato
- - 
+- Creare un metodo random che va 1 ad ITERATION che permetta di interrompere la compressione al momento opportuno
+- Verificare che effettivamente le N compressioni avvengono con lo stesso stato dell'encoder
+- Provare ad implementare anche la versione che prevede la suddivisione dei frame e vedere se funziona uguale
+- Sistemare il codice

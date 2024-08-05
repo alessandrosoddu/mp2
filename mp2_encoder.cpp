@@ -113,6 +113,10 @@ void restore_state(twolame_options *opts, const twolame_options *saved_opts) {
     options_copy(opts, saved_opts);
 }
 
+int watermark_embedding(){
+    return rand() % ITERATION;
+}
+
 //Encode an input audio file in a output audio file
 void encoder(const char* input_file, const char* output_file){
 
@@ -213,7 +217,7 @@ void frame_encoder(const char* input_file, const char* output_file /*state optio
     // Read one frame from input file
     while (input.read(reinterpret_cast<char*>(pcm_input_buffer), sizeof(pcm_input_buffer))) {
 
-        bool watermark = false;
+        int watermark = watermark_embedding();
         for(int i = 0; i < ITERATION; i++){
 
             // Save the state of the encoder before processing the frame
@@ -221,6 +225,10 @@ void frame_encoder(const char* input_file, const char* output_file /*state optio
             if (!saved_opts) {
                 twolame_close(&options);
             }
+
+            /*if(ITERATION == 0){
+                twolame_options *saved_opts = save_state(options);
+            }*/
 
             int num_samples = input.gcount() / sizeof(short int); // number of samples in the buffer
             int num_bytes = twolame_encode_buffer_interleaved(
@@ -234,10 +242,10 @@ void frame_encoder(const char* input_file, const char* output_file /*state optio
             if (num_bytes < 0) {
              cerr << "Error: Encoding error occurred" << endl;
             } 
-            // Write to output file only in the last iteration
-            if (i == ITERATION - 1) {
+            // Write to output file only when watermark is successfully embedded
+            if (i == watermark) {
                 output.write(reinterpret_cast<char*>(output_buffer), num_bytes);
-                cout << "Last iteration frame compressed and written to output file!" << endl;
+                cout << "Watermarked in: " << watermark << " iteration. Frame compressed and written to output file!" << endl;
                 free_twolame_options(saved_opts);
                 break;
             }
@@ -265,7 +273,5 @@ int main(int argc, char* argv[]){
     const char* output_file = argv[2];
     //encoder(input_file, output_file);
     frame_encoder(input_file, output_file);
-
-
 }
 

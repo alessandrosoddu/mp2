@@ -1,5 +1,11 @@
 Provare a veder se il codice è realmente funzionante; Controllare che:
-- Creare un metodo random che va 1 ad ITERATION che permetta di interrompere la compressione al momento opportuno
-- Verificare che effettivamente le N compressioni avvengono con lo stesso stato dell'encoder
-- Provare ad implementare anche la versione che prevede la suddivisione dei frame e vedere se funziona uguale
-- Sistemare il codice
+- Verificare la dimensione del file mp2 creato con il nostro metodo con un encoder online o comunque normale
+- Provare il programma inserendo l'mp2 con input
+- Fare una stima della complessità in tempistiche, togliendo il watermark e provando diverse iterazioni 100,200,500 ecc..
+- Guardare e provare possibile implementazione con mp3 (?)
+- Fare scaletta tesi
+- Iniziare a scrivere della teoria:
+    - Introduzione
+    - Watermark Definizione ecc..
+    - Compressione
+    - Struttura dei file compressi

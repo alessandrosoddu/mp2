@@ -176,7 +176,7 @@ void encoder(const char* input_file, const char* output_file){
 }
 
 //Encode ITERATION time a frame using the same state
-void frame_encoder(const char* input_file, const char* output_file /*state options*/ /*frame*/){
+void frame_encoder(const char* input_file, const char* output_file){
 
     // Open the input file
     ifstream input(input_file, std::ios::binary);
@@ -188,14 +188,14 @@ void frame_encoder(const char* input_file, const char* output_file /*state optio
     // Initialize the encoder
     twolame_options* options = twolame_init();
 
-    // Set parameters
+    // Set standard parameters
     twolame_set_num_channels(options, CHANNELS);  // stereo
     twolame_set_in_samplerate(options, IN_SAMPLERATE); // sampling at 44.1kHz
     twolame_set_out_samplerate(options, OUT_SAMPLERATE);
     twolame_set_bitrate(options, BITRATE);  // 192 kbps
     twolame_set_mode(options, TWOLAME_MONO);
 
-    // Initialize the encoder with parameters
+    // Initialize the encoder with all the parameters
     if (twolame_init_params(options) != 0) {
         cerr << "Error: Unable to initialize parameters" << endl;
         twolame_close(&options);
@@ -245,19 +245,19 @@ void frame_encoder(const char* input_file, const char* output_file /*state optio
             // Write to output file only when watermark is successfully embedded
             if (i == watermark) {
                 output.write(reinterpret_cast<char*>(output_buffer), num_bytes);
-                cout << "Watermarked in: " << watermark << " iteration. Frame compressed and written to output file!" << endl;
+                //cout << "Watermarked in: " << watermark << " iteration. Frame compressed and written to output file!" << endl;
                 free_twolame_options(saved_opts);
                 break;
             }
             else {
                 restore_state(options, saved_opts);
                 free_twolame_options(saved_opts);
-                cout << "Iteration.." << endl;
+                //cout << "Iteration.." << endl;
             }
         }
     } 
     // Close the files and clean up
-    free_twolame_options(options);
+    //free_twolame_options(options);
     input.close();
     output.close();
     twolame_close(&options);
